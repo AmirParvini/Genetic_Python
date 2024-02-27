@@ -1,10 +1,10 @@
-
 import matplotlib.pyplot as plt
 import matplotlib.markers as mks
 import numpy as np
 import pprint
 import random as rn
 from itertools import chain
+import math
 
 Q = 100
 x_Cust = []
@@ -32,7 +32,6 @@ with open("F:\\A-n80-k10.txt", "r", encoding="utf-8")as file:
             demands = line.split()
             demands_array = [int(num) for num in demands]
             Demands.append(demands_array[1])
-
 
 # مختصات همه مشتری ها + انبار   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   
 x_Nodes = x_Cust.copy()
@@ -85,7 +84,7 @@ for i in range(len(x_Cust)):
 def Sum(Route):
     sumroute = 0
     for i in Route:
-        sumroute = sumroute + Demands[Cust_Index.index(i)]
+        sumroute = sumroute + Demands[i-2]
     return sumroute
 
 
@@ -99,37 +98,20 @@ def del_selectable_index(array, j):
 
 
 
-InitialPapulation = np.empty((100, 0), dtype=int)
 Route = list([])
 Chromosoms = []
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 def initialpopulation(paulation_num: int):
 
     Chromosom = []
-    Route = []
 
     for i in range(paulation_num):
         Selectable = Cust_Index.copy()
-        t = 2
+
         while len(Selectable) > 0:
             j = rn.choice(Selectable)
             Chromosom.append(j)
-            Route.append(j)
-
-            if Sum(Route) > 100:
-                Chromosom.pop()
-                Chromosom.append(len(x_Cust)+t)
-                t = t+1
-                Route = []
-            else:
-                # Selectable.remove(j)
-                Selectable = np.delete(Selectable, del_selectable_index(Selectable, j), axis=0)
-                # if i==0:
-                #     print(j)
-                #     print(Selectable)
-
-            if len(Selectable) == 0 :
-                Route = []
+            Selectable.remove(j)
 
         Chromosoms.append(Chromosom)
         Chromosom = []
@@ -146,43 +128,125 @@ initialpopulation(100)
 
 
 
+def RouteDist(x:list, y:list):
+    sumdist = 0
+    for k in range(1,len(x)):
+        sumdist = math.sqrt((x[k-1] - x[k])**2 + (y[k-1] - y[k])**2) + sumdist
+    return sumdist
+
+
 
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 def Chromosom_Plot(chromosom):
+    chromosomdist = []
     x = []
     y = []
     x.append(xDepot)
     y.append(yDepot)
+    d = []
 
     for index, i in enumerate(chromosom):
         # print(i)
         # print('max cust index = ',max(Cust_Index))
+        d.append(i)
 
-        if i <= max(Cust_Index):
+        if index == len(chromosom)-1:
+                x.append(x_Cust[i-2])
+                y.append(y_Cust[i-2])
+                x.append(xDepot)
+                y.append(yDepot)
+                plt.figure()
+                plt.scatter(x_Cust, y_Cust, s=5)
+                plt.scatter(xDepot, yDepot, c='r', s=30, marker='s')
+                for j, txt in enumerate(y_Cust):
+                    plt.text(x_Cust[j], y_Cust[j], j+2, ha='right', va='bottom')
+                chromosomdist.append(RouteDist(x,y))
+                plt.plot(x,y)
+                plt.xlabel(RouteDist(x,y))
+                break
 
-            x.append( x_Cust[Cust_Index.index(i)])
-            y.append( y_Cust[Cust_Index.index(i)])
+
+        if Sum(d)<100:
+            x.append(x_Cust[i-2])
+            y.append(y_Cust[i-2])
+
         else:
             x.append(xDepot)
             y.append(yDepot)
 
-            # plt.figure()
+            plt.figure()
             plt.scatter(x_Cust, y_Cust, s=5)
             plt.scatter(xDepot, yDepot, c='r', s=30, marker='s')
-            for i, txt in enumerate(y_Cust):
-                plt.text(x_Cust[i], y_Cust[i], i+2, ha='right', va='bottom')
-
+            for j, txt in enumerate(y_Cust):
+                plt.text(x_Cust[j], y_Cust[j], j+2, ha='right', va='bottom')
+            chromosomdist.append(RouteDist(x,y))
             plt.plot(x,y)
+            plt.xlabel(RouteDist(x,y))
+            # print("x = ",x , "y = ", y)
             x = []
             y = []
             x.append(xDepot)
             y.append(yDepot)
-
+            x.append( x_Cust[i-2])
+            y.append( y_Cust[i-2])
+            d = []
+            d.append(i)
+    print(sum(chromosomdist))
     plt.show()
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
-# print(Chromosoms[5])
-# Chromosom_Plot(Chromosoms[5])
+print(Chromosoms[2])
+
+
+
+
+
+def Fitness(Chromosoms: list):
+    fitness = []
+    d = []
+    for index, c in enumerate(Chromosoms):
+        x = []
+        y = []
+        x.append(xDepot)
+        y.append(yDepot)
+        chromosomdist = []
+        for index_c, i in enumerate(c):
+            # print("index_c = ", index_c, "AND len(c) = ", len(c))
+            d.append(i)
+            if index_c == len(c)-1:
+                x.append(x_Cust[i-2])
+                y.append(y_Cust[i-2])
+                x.append(xDepot)
+                y.append(yDepot)
+                chromosomdist.append(RouteDist(x,y))
+                d = []
+                break
+
+            if Sum(d)<100:
+                x.append(x_Cust[i-2])
+                y.append(y_Cust[i-2])
+
+            else:
+                x.append(xDepot)
+                y.append(yDepot)
+                chromosomdist.append(RouteDist(x,y))
+                x = []
+                y = []
+                x.append(xDepot)
+                y.append(yDepot)
+                x.append( x_Cust[i-2])
+                y.append( y_Cust[i-2])
+                d = []
+                d.append(i)
+        fitness.append(sum(chromosomdist))
+    return fitness
+
+print(Fitness(Chromosoms))
+Chromosom_Plot(Chromosoms[2])
+
+
+
+
 
 
 
@@ -226,8 +290,8 @@ def OX_CrossOver(Chromosoms: list):
 
 
 
-childs = OX_CrossOver(Chromosoms)
-print(childs, '\n', len(childs))
+# childs = OX_CrossOver(Chromosoms)
+# print(childs, '\n', len(childs))
 
 
 
