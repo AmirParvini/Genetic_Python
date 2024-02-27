@@ -238,7 +238,7 @@ def Fitness(Chromosoms: list):
                 y.append( y_Cust[i-2])
                 d = []
                 d.append(i)
-        fitness.append(sum(chromosomdist))
+        fitness.append(round(sum(chromosomdist),2))
     return fitness
 
 print(Fitness(Chromosoms))
