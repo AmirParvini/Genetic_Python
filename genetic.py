@@ -68,9 +68,11 @@ def DistMatrix():
             Dist_Matrix[i][j] = round( np.sqrt( pow(x_Nodes[i]-x_Nodes[j],2) + pow(y_Nodes[i]-y_Nodes[j],2) ), 2)
     return Dist_Matrix
 # pprint.pprint(DistMatrix())
-
 print('shap of distmatrix = ',DistMatrix().shape, '\n\n')
 print('custindex = ', Custs_index, '\n\n', 'DepotIndex = ', Depots_index, '\n\n')
+
+
+
 
 
 def Grouping(numdepots, distmatrix: DistMatrix):
@@ -91,7 +93,7 @@ print('Grouping: ',Grouping(NumOfDepots,DistMatrix()), '\n\n')
 
 
 
-Chromosoms = []
+InitialChromosoms = []
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 def Initialpopulation(paulation_num: int):
     for i in range(paulation_num):
@@ -101,11 +103,74 @@ def Initialpopulation(paulation_num: int):
             j = rn.choice(Selectable)
             Chromosom.append(j)
             Selectable.remove(j)
-        Chromosoms.append(Chromosom)
-    return Chromosoms
+        InitialChromosoms.append(Chromosom)
+    return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 print('initialpop =', Initialpopulation(100), '\n\n')
 
+
+
+
+def SumDemands(Route):
+    sumroute = 0
+    for i in Route:
+        sumroute = sumroute + Demands[i-1]
+    return sumroute
+
+def RouteDist(x:list, y:list):
+    sumdist = 0
+    for k in range(1,len(x)):
+        sumdist = math.sqrt((x[k-1] - x[k])**2 + (y[k-1] - y[k])**2) + sumdist
+    return sumdist
+
+def Fitness(Chromosoms: list):
+    fitness = []
+    d = []
+    for index, c in enumerate(Chromosoms):
+        oA = 0
+        oB = 0
+        x = []
+        y = []
+        x.append(xDepots[oB])
+        y.append(yDepots[oB])
+        chromosomdist = []
+        for index_c, i in enumerate(c):
+            # print("index_c = ", index_c, "AND len(c) = ", len(c))
+            d.append(i)
+            if index_c == len(c)-1:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                chromosomdist.append(RouteDist(x,y))
+                d = []
+                break
+
+            if SumDemands(d)<=Q:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+
+            else:
+                oA += 1
+                if oA == NumOfVehicles:
+                    oA = 0
+                    x.append(xDepots[oB])
+                    y.append(yDepots[oB])
+                    oB += 1
+                else:
+                    x.append(xDepots[oB])
+                    y.append(yDepots[oB])
+                chromosomdist.append(RouteDist(x,y))
+                x = []
+                y = []
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                d = []
+                d.append(i)
+        fitness.append(round(sum(chromosomdist),2))
+    return fitness
 
 
 
@@ -117,4 +182,117 @@ for i, txt in enumerate(yDepots):
     plt.text(xDepots[i], yDepots[i], i+1, fontsize=6, color='red', ha='right', va='bottom')
 for i, txt in enumerate(y_Cust):
     plt.text(x_Cust[i], y_Cust[i], i+1,fontsize=6, ha='right', va='bottom')
-plt.show()
+
+
+
+
+# Route_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def RoutePlot(x,y):
+    # plt.figure()
+    plt.scatter(x_Cust, y_Cust, s=5)
+    plt.scatter(xDepots, yDepots, c='r', s=5, marker='s')
+    for m, txt in enumerate(yDepots):
+        plt.text(xDepots[m], yDepots[m], m+1, fontsize=6, color='red', ha='right', va='bottom')
+    for n, txt in enumerate(y_Cust):
+        plt.text(x_Cust[n], y_Cust[n], n+1, fontsize=6, ha='right', va='bottom')
+    plt.plot(x,y)
+    plt.xlabel(RouteDist(x,y))
+# Route_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+
+
+
+
+
+# Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def Chromosom_Plot(chromosom):
+    oA = 0
+    oB = 0
+    chromosomdist = []
+    x = []
+    y = []
+    x.append(xDepots[oB])
+    y.append(yDepots[oB])
+    d = []
+
+    for index, i in enumerate(chromosom):
+        # print(i)
+        # print('max cust index = ',max(Cust_Index))
+        d.append(i)
+
+        if index == len(chromosom)-1:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                RoutePlot(x,y)
+                chromosomdist.append(RouteDist(x,y))
+                break
+
+
+        if SumDemands(d)<=Q:
+            x.append(x_Cust[i-1])
+            y.append(y_Cust[i-1])
+
+        else:
+            oA += 1
+            if oA == NumOfVehicles:
+                oA = 0
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                oB += 1
+            else:
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+            chromosomdist.append(RouteDist(x,y))
+            RoutePlot(x,y)
+            # print("x = ",x , "y = ", y)
+            x = []
+            y = []
+            x.append(xDepots[oB])
+            y.append(yDepots[oB])
+            x.append(x_Cust[i-1])
+            y.append(y_Cust[i-1])
+            d = []
+            d.append(i)
+    print(sum(chromosomdist))
+    plt.show()
+# Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+print(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))],'\n\n')
+print('fitnessValues of chromosoms:',Fitness(InitialChromosoms))
+# Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
+# plt.show()
+
+
+
+# Selection    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+Ranking = range(1,len(InitialChromosoms)+1)
+K = len(Ranking)
+ChromosomsProb =[]
+ProbsRange = []
+for i in Ranking:
+    if i <= K/2:
+        ChromosomsProb.append((12*i)/(5*K*(K+2)))
+    else:
+        ChromosomsProb.append((28*i)/(5*K*(3*K+2)))
+for index, i in enumerate(ChromosomsProb):
+    if index == 0:
+        ProbsRange.append([0,i])
+    else:
+        ProbsRange.append([ProbsRange[index-1][1], ProbsRange[index-1][1] + (i)])
+def SRS_Selection(Pop: list):
+    selectedchromosomforcrossover = []
+    SelectedChromosomForCrossOver = []
+    ChromosomsFitness = Fitness(Pop)
+    ChromosomsFitnessSorted = sorted(Fitness(Pop))
+    ChromosomsIndexByFitness = [ChromosomsFitness.index(i) for i in ChromosomsFitnessSorted]
+    for i in Ranking:
+        r = rn.uniform(0,1)
+        for index, j in enumerate(ProbsRange):
+            if r > j[0] and r <= j[1]:
+                selectedchromosomforcrossover.append(ChromosomsIndexByFitness[index])
+                if len(selectedchromosomforcrossover) == 2:
+                    SelectedChromosomForCrossOver.append(selectedchromosomforcrossover)
+                    selectedchromosomforcrossover = []
+    return SelectedChromosomForCrossOver
+# Selection    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+print('SelectedChromosomForCrossOver: ',Selection(InitialChromosoms))
