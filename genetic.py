@@ -21,6 +21,7 @@ Depots_index = []
 Nodes_Index = []
 Customers = []
 Demands = []
+InitialChromosoms = []
 
 # خواندن فایل   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 with open("F:\\MDVRP_DATA_new\pr03", "r", encoding="utf-8") as file:
@@ -86,14 +87,12 @@ def Grouping(numdepots, distmatrix: DistMatrix):
             if l == min_index:
                 GD[l].append(i)
     return GD
-print('Grouping: ',Grouping(NumOfDepots,DistMatrix()), '\n\n')
+# print('Grouping: ',Grouping(NumOfDepots,DistMatrix()), '\n\n')
 
 
 
 
 
-
-InitialChromosoms = []
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 def Initialpopulation(paulation_num: int):
     for i in range(paulation_num):
@@ -106,7 +105,8 @@ def Initialpopulation(paulation_num: int):
         InitialChromosoms.append(Chromosom)
     return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-print('initialpop =', Initialpopulation(100), '\n\n')
+InitialChromosoms = Initialpopulation(100)
+# print('initialpop =', InitialChromosoms, '\n\n')
 
 
 
@@ -116,7 +116,6 @@ def SumDemands(Route):
     for i in Route:
         sumroute = sumroute + Demands[i-1]
     return sumroute
-
 def RouteDist(x:list, y:list):
     sumdist = 0
     for k in range(1,len(x)):
@@ -176,12 +175,12 @@ def Fitness(Chromosoms: list):
 
 
 
-plt.scatter(x_Cust, y_Cust, s=5)
-plt.scatter(xDepots, yDepots, c='r', s=5, marker='s')
-for i, txt in enumerate(yDepots):
-    plt.text(xDepots[i], yDepots[i], i+1, fontsize=6, color='red', ha='right', va='bottom')
-for i, txt in enumerate(y_Cust):
-    plt.text(x_Cust[i], y_Cust[i], i+1,fontsize=6, ha='right', va='bottom')
+# plt.scatter(x_Cust, y_Cust, s=5)
+# plt.scatter(xDepots, yDepots, c='r', s=5, marker='s')
+# for i, txt in enumerate(yDepots):
+#     plt.text(xDepots[i], yDepots[i], i+1, fontsize=6, color='red', ha='right', va='bottom')
+# for i, txt in enumerate(y_Cust):
+#     plt.text(x_Cust[i], y_Cust[i], i+1,fontsize=6, ha='right', va='bottom')
 
 
 
@@ -254,11 +253,11 @@ def Chromosom_Plot(chromosom):
             y.append(y_Cust[i-1])
             d = []
             d.append(i)
-    print(sum(chromosomdist))
+    # print(sum(chromosomdist))
     plt.show()
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-print(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))],'\n\n')
-print('fitnessValues of chromosoms:',Fitness(InitialChromosoms))
+# print(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))],'\n\n')
+# print('fitnessValues of chromosoms:',Fitness(InitialChromosoms), '\n\n')
 # Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
 # plt.show()
 
@@ -279,11 +278,10 @@ for index, i in enumerate(ChromosomsProb):
         ProbsRange.append([0,i])
     else:
         ProbsRange.append([ProbsRange[index-1][1], ProbsRange[index-1][1] + (i)])
-def SRS_Selection(Pop: list):
+def SRS_Selection(ChromosomsFitness: list):
     selectedchromosomforcrossover = []
     SelectedChromosomForCrossOver = []
-    ChromosomsFitness = Fitness(Pop)
-    ChromosomsFitnessSorted = sorted(Fitness(Pop))
+    ChromosomsFitnessSorted = sorted(ChromosomsFitness, reverse=True)
     ChromosomsIndexByFitness = [ChromosomsFitness.index(i) for i in ChromosomsFitnessSorted]
     for i in Ranking:
         r = rn.uniform(0,1)
@@ -295,4 +293,78 @@ def SRS_Selection(Pop: list):
                     selectedchromosomforcrossover = []
     return SelectedChromosomForCrossOver
 # Selection    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-print('SelectedChromosomForCrossOver: ',Selection(InitialChromosoms))
+# print('SelectedChromosomForCrossOver: ',SRS_Selection(InitialChromosoms), '\n\n')
+
+
+
+
+# Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def OX_Crossover(SelectedChromosoms):
+    global InitialChromosoms
+    childs = []
+    for i in SelectedChromosoms:
+        for j in range(2):
+            if j == 0:
+                p1 = InitialChromosoms[i[0]]
+                p2 = InitialChromosoms[i[1]]
+            if j == 1:
+                p2 = InitialChromosoms[i[0]]
+                p1 = InitialChromosoms[i[1]]
+            child = [1]*len(p1)
+            crossoverindex = rn.sample(list(range(len(p1))),2)
+            child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
+            j = 0
+            Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
+            for l in Chain:
+                if l < min(crossoverindex) or l > max(crossoverindex):
+                    while p2[j] in child[min(crossoverindex):max(crossoverindex)+1]:
+                        j += 1
+                    child[l] = p2[j]
+                j += 1
+            childs.append(child)
+            crossoverindex = []
+    InitialChromosoms = childs.copy()
+    return childs
+# Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+# print('Childs = ' ,OX_Crossover(SRS_Selection(InitialChromosoms)))
+
+
+
+# Mutation    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def Mutation(childs: list):
+    childsaftermutation = []
+    for i in childs:
+        r = rn.uniform(0,1)
+        if r <= 0.1:
+            n = rn.sample(list(range(len(i))),2)
+            n0 = i[n[0]]
+            n1 = i[n[1]]
+            i[n[0]] = n1
+            i[n[1]] = n0
+            childsaftermutation.append(i)
+        else:
+            childsaftermutation.append(i)
+    return childsaftermutation
+
+
+
+
+
+
+# Generation    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def Generation(repeat):
+    global InitialChromosoms
+    g = range(1,repeat+1)
+    minfit = []
+    for i in range(repeat):
+        fitness = Fitness(InitialChromosoms)
+        minfit.append(min(fitness))
+        SelectedChromosoms = SRS_Selection(fitness)
+        Childs = OX_Crossover(SelectedChromosoms)
+        childsaftermutation = Mutation(Childs)
+        InitialChromosoms = childsaftermutation
+    Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
+    plt.figure()
+    plt.plot(g,minfit)
+    plt.show()
+Generation(1000)
