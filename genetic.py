@@ -105,7 +105,7 @@ def Initialpopulation(paulation_num: int):
         InitialChromosoms.append(Chromosom)
     return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-InitialChromosoms = Initialpopulation(100)
+InitialChromosoms = Initialpopulation(50)
 # print('initialpop =', InitialChromosoms, '\n\n')
 
 
@@ -196,6 +196,7 @@ def RoutePlot(x,y):
         plt.text(x_Cust[n], y_Cust[n], n+1, fontsize=6, ha='right', va='bottom')
     plt.plot(x,y)
     plt.xlabel(RouteDist(x,y))
+    # plt.show()
 # Route_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
 
@@ -254,6 +255,7 @@ def Chromosom_Plot(chromosom):
             d = []
             d.append(i)
     # print(sum(chromosomdist))
+    plt.figure()
     plt.show()
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 # print(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))],'\n\n')
@@ -303,26 +305,30 @@ def OX_Crossover(SelectedChromosoms):
     global InitialChromosoms
     childs = []
     for i in SelectedChromosoms:
-        for j in range(2):
-            if j == 0:
-                p1 = InitialChromosoms[i[0]]
-                p2 = InitialChromosoms[i[1]]
-            if j == 1:
-                p2 = InitialChromosoms[i[0]]
-                p1 = InitialChromosoms[i[1]]
-            child = [1]*len(p1)
-            crossoverindex = rn.sample(list(range(len(p1))),2)
-            child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
-            j = 0
-            Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
-            for l in Chain:
-                if l < min(crossoverindex) or l > max(crossoverindex):
-                    while p2[j] in child[min(crossoverindex):max(crossoverindex)+1]:
-                        j += 1
-                    child[l] = p2[j]
-                j += 1
-            childs.append(child)
-            crossoverindex = []
+        r = rn.uniform(0,1)
+        if r < 0.9:
+            for j in range(2):
+                if j == 0:
+                    p1 = InitialChromosoms[i[0]]
+                    p2 = InitialChromosoms[i[1]]
+                if j == 1:
+                    p2 = InitialChromosoms[i[0]]
+                    p1 = InitialChromosoms[i[1]]
+                child = [1]*len(p1)
+                crossoverindex = rn.sample(list(range(len(p1))),2)
+                child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
+                j = 0
+                Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
+                for l in Chain:
+                    if l < min(crossoverindex) or l > max(crossoverindex):
+                        while p2[j] in child[min(crossoverindex):max(crossoverindex)+1]:
+                            j += 1
+                        child[l] = p2[j]
+                    j += 1
+                childs.append(child)
+        else:
+            childs.append(InitialChromosoms[i[0]])
+            childs.append(InitialChromosoms[i[1]])
     InitialChromosoms = childs.copy()
     return childs
 # Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
@@ -364,7 +370,6 @@ def Generation(repeat):
         childsaftermutation = Mutation(Childs)
         InitialChromosoms = childsaftermutation
     Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
-    plt.figure()
     plt.plot(g,minfit)
     plt.show()
-Generation(1000)
+Generation(2000)
