@@ -301,33 +301,31 @@ def SRS_Selection(ChromosomsFitness: list):
 
 
 # Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-def PMX_Crossover(SelectedChromosoms):
+def OX_Crossover(SelectedChromosoms):
     global InitialChromosoms
     childs = []
     for i in SelectedChromosoms:
         r = rn.uniform(0,1)
         if r < 0.9:
-            p1 = InitialChromosoms[i[0]]
-            p2 = InitialChromosoms[i[1]]
-            child1 = [1]*len(p1)
-            child2 = [1]*len(p1)
-            crossoverindex = rn.sample(list(range(len(p1))),2)
-            bp1 = p1[min(crossoverindex):max(crossoverindex)+1]
-            bp2 = p2[min(crossoverindex):max(crossoverindex)+1]
-            child1[min(crossoverindex):max(crossoverindex)+1] = p2[min(crossoverindex):max(crossoverindex)+1]
-            child2[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
-            Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child1)))
-            for j in Chain:
-                chekpoint1 = p1[j]
-                chekpoint2 = p2[j]
-                while chekpoint1 in bp2:
-                    chekpoint1 = bp1[bp2.index(chekpoint1)]
-                child1[j] = chekpoint1
-                while chekpoint2 in bp1:
-                    chekpoint2 = bp2[bp1.index(chekpoint2)]
-                child2[j] = chekpoint2
-            childs.append(child1)
-            childs.append(child2)
+            for j in range(2):
+                if j == 0:
+                    p1 = InitialChromosoms[i[0]]
+                    p2 = InitialChromosoms[i[1]]
+                if j == 1:
+                    p2 = InitialChromosoms[i[0]]
+                    p1 = InitialChromosoms[i[1]]
+                child = [1]*len(p1)
+                crossoverindex = rn.sample(list(range(len(p1))),2)
+                child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
+                j = 0
+                Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
+                for l in Chain:
+                    if l < min(crossoverindex) or l > max(crossoverindex):
+                        while p2[j] in child[min(crossoverindex):max(crossoverindex)+1]:
+                            j += 1
+                        child[l] = p2[j]
+                    j += 1
+                childs.append(child)
         else:
             childs.append(InitialChromosoms[i[0]])
             childs.append(InitialChromosoms[i[1]])
@@ -368,7 +366,7 @@ def Generation(repeat):
         fitness = Fitness(InitialChromosoms)
         minfit.append(min(fitness))
         SelectedChromosoms = SRS_Selection(fitness)
-        Childs = PMX_Crossover(SelectedChromosoms)
+        Childs = OX_Crossover(SelectedChromosoms)
         childsaftermutation = Mutation(Childs)
         InitialChromosoms = childsaftermutation
     Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
