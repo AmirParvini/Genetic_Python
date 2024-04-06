@@ -105,7 +105,7 @@ def Initialpopulation(paulation_num: int):
         InitialChromosoms.append(Chromosom)
     return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-InitialChromosoms = Initialpopulation(50)
+InitialChromosoms = Initialpopulation(100)
 # print('initialpop =', InitialChromosoms, '\n\n')
 
 
@@ -301,31 +301,35 @@ def SRS_Selection(ChromosomsFitness: list):
 
 
 # Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-def OX_Crossover(SelectedChromosoms):
+def Cycle_Crossover(SelectedChromosoms):
     global InitialChromosoms
     childs = []
     for i in SelectedChromosoms:
         r = rn.uniform(0,1)
-        if r < 0.9:
-            for j in range(2):
-                if j == 0:
-                    p1 = InitialChromosoms[i[0]]
-                    p2 = InitialChromosoms[i[1]]
-                if j == 1:
-                    p2 = InitialChromosoms[i[0]]
-                    p1 = InitialChromosoms[i[1]]
-                child = [1]*len(p1)
-                crossoverindex = rn.sample(list(range(len(p1))),2)
-                child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
-                j = 0
-                Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
-                for l in Chain:
-                    if l < min(crossoverindex) or l > max(crossoverindex):
-                        while p2[j] in child[min(crossoverindex):max(crossoverindex)+1]:
-                            j += 1
-                        child[l] = p2[j]
-                    j += 1
-                childs.append(child)
+        if r < 0.8:
+            p1 = InitialChromosoms[i[0]]
+            p2 = InitialChromosoms[i[1]]
+            child1 = [0]*len(p1)
+            child2 = [0]*len(p1)
+            cycle = []
+            bc = p1[0]
+            ec = p2[0]
+            cycle.append(bc)
+            cycle.append(ec)
+            while bc != ec:
+                ec = p2[p1.index(ec)]
+                cycle.append(ec)
+            for i in cycle:
+                child1[p1.index(i)] = i
+                child2[p2.index(i)] = i
+            for index1 , item1 in enumerate(child1):
+                if item1 == 0:
+                    child1[index1] = p2[index1]
+            for index2 , item2 in enumerate(child2):
+                if item2 == 0:
+                    child2[index2] = p1[index2]
+            childs.append(child1)
+            childs.append(child2)
         else:
             childs.append(InitialChromosoms[i[0]])
             childs.append(InitialChromosoms[i[1]])
@@ -341,7 +345,7 @@ def Mutation(childs: list):
     childsaftermutation = []
     for i in childs:
         r = rn.uniform(0,1)
-        if r <= 0.1:
+        if r <= 0.2:
             n = rn.sample(list(range(len(i))),2)
             n0 = i[n[0]]
             n1 = i[n[1]]
@@ -366,10 +370,11 @@ def Generation(repeat):
         fitness = Fitness(InitialChromosoms)
         minfit.append(min(fitness))
         SelectedChromosoms = SRS_Selection(fitness)
-        Childs = OX_Crossover(SelectedChromosoms)
+        Childs = Cycle_Crossover(SelectedChromosoms)
         childsaftermutation = Mutation(Childs)
         InitialChromosoms = childsaftermutation
     Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
     plt.plot(g,minfit)
+    plt.title(f'min_fitness = {minfit[-1]}')
     plt.show()
 Generation(2000)
