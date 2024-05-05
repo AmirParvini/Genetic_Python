@@ -105,7 +105,7 @@ def Initialpopulation(paulation_num: int):
         InitialChromosoms.append(Chromosom)
     return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-InitialChromosoms = Initialpopulation(100)
+InitialChromosoms = Initialpopulation(50)
 # print('initialpop =', InitialChromosoms, '\n\n')
 
 
@@ -144,7 +144,6 @@ def Fitness(Chromosoms: list):
                 chromosomdist.append(RouteDist(x,y))
                 d = []
                 break
-
             if SumDemands(d)<=Q:
                 x.append(x_Cust[i-1])
                 y.append(y_Cust[i-1])
@@ -301,35 +300,44 @@ def SRS_Selection(ChromosomsFitness: list):
 
 
 # Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-def Cycle_Crossover(SelectedChromosoms):
+def New_Crossover(SelectedChromosoms):
     global InitialChromosoms
     childs = []
     for i in SelectedChromosoms:
         r = rn.uniform(0,1)
         if r < 0.8:
-            p1 = InitialChromosoms[i[0]]
-            p2 = InitialChromosoms[i[1]]
-            child1 = [0]*len(p1)
-            child2 = [0]*len(p1)
-            cycle = []
-            bc = p1[0]
-            ec = p2[0]
-            cycle.append(bc)
-            cycle.append(ec)
-            while bc != ec:
-                ec = p2[p1.index(ec)]
-                cycle.append(ec)
-            for i in cycle:
-                child1[p1.index(i)] = i
-                child2[p2.index(i)] = i
-            for index1 , item1 in enumerate(child1):
-                if item1 == 0:
-                    child1[index1] = p2[index1]
-            for index2 , item2 in enumerate(child2):
-                if item2 == 0:
-                    child2[index2] = p1[index2]
-            childs.append(child1)
-            childs.append(child2)
+            for rep in range(2):
+                if rep == 0:
+                    p1:list = InitialChromosoms[i[0]]
+                    p2:list = InitialChromosoms[i[1]]
+                if rep == 1:
+                    p1:list = InitialChromosoms[i[1]]
+                    p2:list = InitialChromosoms[i[0]]
+                child = [0]*len(p1)
+                rn1 = rn.randint(1, (len(p1))/3)
+                rn2 = rn.randint(len(p1)*2/3, len(p1)-2)
+                joint = []
+                for p in p1[rn1:rn2+1]:
+                    if p in p2[rn1:rn2+1]:
+                        joint.append(p)
+                        child[p1.index(p)] = p
+                for j in joint:
+                    if child[child.index(j)-1] == 0 and p2[p2.index(j)-1] not in child:
+                        child[child.index(j)-1] = p2[p2.index(j)-1]
+                    if child[child.index(j)+1] == 0 and p2[p2.index(j)+1] not in child:
+                        child[child.index(j)+1] = p2[p2.index(j)+1]
+                c = 0
+                for index, l in enumerate(child):
+                    if l == 0:
+                        if p2[c] not in child:
+                            child[index] = p2[c]
+                            c += 1
+                        elif p2[c] in child:
+                            while p2[c] in child:
+                                c += 1
+                            child[index] = p2[c]
+                            c += 1
+                childs.append(child)
         else:
             childs.append(InitialChromosoms[i[0]])
             childs.append(InitialChromosoms[i[1]])
@@ -345,7 +353,7 @@ def Mutation(childs: list):
     childsaftermutation = []
     for i in childs:
         r = rn.uniform(0,1)
-        if r <= 0.2:
+        if r <= 0.1:
             n = rn.sample(list(range(len(i))),2)
             n0 = i[n[0]]
             n1 = i[n[1]]
@@ -370,7 +378,7 @@ def Generation(repeat):
         fitness = Fitness(InitialChromosoms)
         minfit.append(min(fitness))
         SelectedChromosoms = SRS_Selection(fitness)
-        Childs = Cycle_Crossover(SelectedChromosoms)
+        Childs = New_Crossover(SelectedChromosoms)
         childsaftermutation = Mutation(Childs)
         InitialChromosoms = childsaftermutation
     Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
