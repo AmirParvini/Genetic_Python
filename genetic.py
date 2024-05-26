@@ -1,260 +1,388 @@
-
 import matplotlib.pyplot as plt
 import matplotlib.markers as mks
 import numpy as np
 import pprint
 import random as rn
 from itertools import chain
+import math
 
-Q = 100
+NumOfVehicles = 0
+Q = 0
+NumOfDepots = 0
+NumOfCust = 0
+x_Nodes = []
+y_Nodes = []
 x_Cust = []
 y_Cust = []
-Cust_Index = list(range(2,81))
+xDepots = []
+yDepots = []
+Custs_index = []
+Depots_index = []
+Nodes_Index = []
 Customers = []
 Demands = []
+InitialChromosoms = []
 
 # خواندن فایل   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-with open("F:\\A-n80-k10.txt", "r", encoding="utf-8")as file:
-    for i, line in enumerate(file, start=1):
-        if 7 < i < 88:
+with open("F:\\MDVRP_DATA_new\pr03", "r", encoding="utf-8") as file:
+    lines = file.readlines()
 
-            numbers = line.split()
-            numbers_array = [int(num) for num in numbers]
+for i, line in enumerate(lines, start=1):
+    if i == 1:
+        numbers = line.split()
+        numbers_array = [int(num) for num in numbers]
+        NumOfVehicles = numbers_array[1]
+        NumOfCust = numbers_array[2]
+        NumOfDepots = numbers_array[3]
+    elif i == 2:
+        numbers = line.split()
+        numbers_array = [int(num) for num in numbers]
+        Q = numbers_array[1]
+    elif 1+NumOfDepots < i < len(lines)-NumOfDepots+1:
+        numbers = line.split()
+        numbers_array = [float(num) for num in numbers]
+        x_Cust.append(numbers_array[1])
+        x_Nodes.append(numbers_array[1])
+        y_Cust.append(numbers_array[2])
+        y_Nodes.append(numbers_array[2])
+        Demands.append(numbers_array[4])
 
-            if i == 8:
-                xDepot = numbers_array[1]
-                yDepot = numbers_array[2]
-            else:
-                x_Cust.append(numbers_array[1])
-                y_Cust.append(numbers_array[2])
-        
-        if 89 < i < 169:
-            demands = line.split()
-            demands_array = [int(num) for num in demands]
-            Demands.append(demands_array[1])
+    elif len(lines)-NumOfDepots < i:
+        numbers = line.split()
+        numbers_array = [float(num) for num in numbers]
+        xDepots.append(numbers_array[1])
+        x_Nodes.append(numbers_array[1])
+        yDepots.append(numbers_array[2])
+        y_Nodes.append(numbers_array[2])
 
-
-# مختصات همه مشتری ها + انبار   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   
-x_Nodes = x_Cust.copy()
-y_Nodes = y_Cust.copy()
-x_Nodes.insert(0,xDepot)
-y_Nodes.insert(0,yDepot)
-
-
-Dist_Matrix = np.empty((len(x_Nodes), len(y_Nodes)), dtype=float)
-
-
-# نمودار
-plt.scatter(x_Cust, y_Cust, s=5)
-plt.scatter(xDepot, yDepot, c='r', s=30, marker='s')
-
-for i, txt in enumerate(y_Cust):
-    plt.text(x_Cust[i], y_Cust[i], i+2, ha='right', va='bottom')
-# plt.show()
-
+print('custs =', NumOfCust, '\n', 'Depots =', NumOfDepots, '\n', 'vehicles of each Depot =',NumOfVehicles, '\n', 'Q =', Q, '\n', 'sumdemands =', sum(Demands))
+Custs_index = list(range(1,NumOfCust+1))
+Depots_index = list(range(Custs_index[-1]+1,NumOfCust+NumOfDepots+1))
+Nodes_Index = list(range(1,NumOfCust+NumOfDepots+1))
 
 
 # تشکیل مارتیس فواصل    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+Dist_Matrix = np.empty((len(x_Nodes), len(y_Nodes)), dtype=float)
 def DistMatrix():
     for i in range(len(x_Nodes)):
         for j in range(len(x_Nodes)):
             Dist_Matrix[i][j] = round( np.sqrt( pow(x_Nodes[i]-x_Nodes[j],2) + pow(y_Nodes[i]-y_Nodes[j],2) ), 2)
     return Dist_Matrix
-
-
-
 # pprint.pprint(DistMatrix())
-
-# print(min(np.ma.masked_values(Dist_Matrix[0][0:], [0])))
-# print(min(Dist_Matrix[0, 1:]))
-
-
-
-
-Cust_Index_Demands = np.empty((len(x_Cust), 2), dtype=int)
-
-j = 0
-for i in range(len(x_Cust)):
-    Cust_Index_Demands[i]= [Cust_Index[j], Demands[j]]
-    j = j+1
+print('shap of distmatrix = ',DistMatrix().shape, '\n\n')
+print('custindex = ', Custs_index, '\n\n', 'DepotIndex = ', Depots_index, '\n\n')
 
 
 
 
-# مجموع تقاضاهای مشتری هایی که یک ماشین آن ها را بازدید می کند
-def Sum(Route):
-    sumroute = 0
-    for i in Route:
-        sumroute = sumroute + Demands[Cust_Index.index(i)]
-    return sumroute
+
+def Grouping(numdepots, distmatrix: DistMatrix):
+    GD = [['d{}'.format(k+1)] for k in range(numdepots)]
+    for i in Custs_index:
+        dist_to_depots = []
+        for j in Depots_index:
+            dist_to_depots.append(distmatrix[i-1][j-1])
+        min_index = dist_to_depots.index(min(dist_to_depots))
+        for l in range(numdepots):
+            if l == min_index:
+                GD[l].append(i)
+    return GD
+# print('Grouping: ',Grouping(NumOfDepots,DistMatrix()), '\n\n')
 
 
-def del_selectable_index(array, j):
-    for row_index, row in enumerate(array):
-        if np.array_equal(row, j):
-            return row_index
-        else:
-            continue
 
 
 
-
-InitialPapulation = np.empty((100, 0), dtype=int)
-Route = list([])
-Chromosoms = []
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-def initialpopulation(paulation_num: int):
-
-    Chromosom = []
-    Route = []
-
+def Initialpopulation(paulation_num: int):
     for i in range(paulation_num):
-        Selectable = Cust_Index.copy()
-        t = 2
+        Chromosom = []
+        Selectable = Custs_index.copy()
         while len(Selectable) > 0:
             j = rn.choice(Selectable)
             Chromosom.append(j)
-            Route.append(j)
-
-            if Sum(Route) > 100:
-                Chromosom.pop()
-                Chromosom.append(len(x_Cust)+t)
-                t = t+1
-                Route = []
-            else:
-                # Selectable.remove(j)
-                Selectable = np.delete(Selectable, del_selectable_index(Selectable, j), axis=0)
-                # if i==0:
-                #     print(j)
-                #     print(Selectable)
-
-            if len(Selectable) == 0 :
-                Route = []
-
-        Chromosoms.append(Chromosom)
-        Chromosom = []
-
-    return Chromosoms
+            Selectable.remove(j)
+        InitialChromosoms.append(Chromosom)
+    return InitialChromosoms
 # initialpopulation -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+InitialChromosoms = Initialpopulation(50)
+# print('initialpop =', InitialChromosoms, '\n\n')
 
 
 
 
-initialpopulation(100)
-# print(Chromosoms[5])
-# print(len(Chromosoms[5]))
+def SumDemands(Route):
+    sumroute = 0
+    for i in Route:
+        sumroute = sumroute + Demands[i-1]
+    return sumroute
+def RouteDist(x:list, y:list):
+    sumdist = 0
+    for k in range(1,len(x)):
+        sumdist = math.sqrt((x[k-1] - x[k])**2 + (y[k-1] - y[k])**2) + sumdist
+    return sumdist
+
+def Fitness(Chromosoms: list):
+    fitness = []
+    d = []
+    for index, c in enumerate(Chromosoms):
+        oA = 0
+        oB = 0
+        x = []
+        y = []
+        x.append(xDepots[oB])
+        y.append(yDepots[oB])
+        chromosomdist = []
+        for index_c, i in enumerate(c):
+            # print("index_c = ", index_c, "AND len(c) = ", len(c))
+            d.append(i)
+            if index_c == len(c)-1:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                chromosomdist.append(RouteDist(x,y))
+                d = []
+                break
+            if SumDemands(d)<=Q:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+
+            else:
+                oA += 1
+                if oA == NumOfVehicles:
+                    oA = 0
+                    x.append(xDepots[oB])
+                    y.append(yDepots[oB])
+                    oB += 1
+                else:
+                    x.append(xDepots[oB])
+                    y.append(yDepots[oB])
+                chromosomdist.append(RouteDist(x,y))
+                x = []
+                y = []
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                d = []
+                d.append(i)
+        fitness.append(round(sum(chromosomdist),2))
+    return fitness
+
+
+
+
+
+# plt.scatter(x_Cust, y_Cust, s=5)
+# plt.scatter(xDepots, yDepots, c='r', s=5, marker='s')
+# for i, txt in enumerate(yDepots):
+#     plt.text(xDepots[i], yDepots[i], i+1, fontsize=6, color='red', ha='right', va='bottom')
+# for i, txt in enumerate(y_Cust):
+#     plt.text(x_Cust[i], y_Cust[i], i+1,fontsize=6, ha='right', va='bottom')
+
+
+
+
+# Route_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def RoutePlot(x,y):
+    # plt.figure()
+    plt.scatter(x_Cust, y_Cust, s=5)
+    plt.scatter(xDepots, yDepots, c='r', s=5, marker='s')
+    for m, txt in enumerate(yDepots):
+        plt.text(xDepots[m], yDepots[m], m+1, fontsize=6, color='red', ha='right', va='bottom')
+    for n, txt in enumerate(y_Cust):
+        plt.text(x_Cust[n], y_Cust[n], n+1, fontsize=6, ha='right', va='bottom')
+    plt.plot(x,y)
+    plt.xlabel(RouteDist(x,y))
+    # plt.show()
+# Route_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+
 
 
 
 
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 def Chromosom_Plot(chromosom):
+    oA = 0
+    oB = 0
+    chromosomdist = []
     x = []
     y = []
-    x.append(xDepot)
-    y.append(yDepot)
+    x.append(xDepots[oB])
+    y.append(yDepots[oB])
+    d = []
 
     for index, i in enumerate(chromosom):
         # print(i)
         # print('max cust index = ',max(Cust_Index))
+        d.append(i)
 
-        if i <= max(Cust_Index):
+        if index == len(chromosom)-1:
+                x.append(x_Cust[i-1])
+                y.append(y_Cust[i-1])
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                RoutePlot(x,y)
+                chromosomdist.append(RouteDist(x,y))
+                break
 
-            x.append( x_Cust[Cust_Index.index(i)])
-            y.append( y_Cust[Cust_Index.index(i)])
+
+        if SumDemands(d)<=Q:
+            x.append(x_Cust[i-1])
+            y.append(y_Cust[i-1])
+
         else:
-            x.append(xDepot)
-            y.append(yDepot)
-
-            # plt.figure()
-            plt.scatter(x_Cust, y_Cust, s=5)
-            plt.scatter(xDepot, yDepot, c='r', s=30, marker='s')
-            for i, txt in enumerate(y_Cust):
-                plt.text(x_Cust[i], y_Cust[i], i+2, ha='right', va='bottom')
-
-            plt.plot(x,y)
+            oA += 1
+            if oA == NumOfVehicles:
+                oA = 0
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+                oB += 1
+            else:
+                x.append(xDepots[oB])
+                y.append(yDepots[oB])
+            chromosomdist.append(RouteDist(x,y))
+            RoutePlot(x,y)
+            # print("x = ",x , "y = ", y)
             x = []
             y = []
-            x.append(xDepot)
-            y.append(yDepot)
-
+            x.append(xDepots[oB])
+            y.append(yDepots[oB])
+            x.append(x_Cust[i-1])
+            y.append(y_Cust[i-1])
+            d = []
+            d.append(i)
+    # print(sum(chromosomdist))
     plt.show()
 # Chromosom_Plot    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-
-# print(Chromosoms[5])
-# Chromosom_Plot(Chromosoms[5])
-
-
-
-
-# OXCrossOver   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-def OX_CrossOver(Chromosoms: list):
-
-    childs = []
-
-    while(len(Chromosoms) > 0):
-
-        p1: list = rn.choice(Chromosoms)
-        Chromosoms.remove(p1)
-        p2: list = rn.choice(Chromosoms)
-        Chromosoms.remove(p2)
-
-        if len(p1)!=len(p2):
-            print('continue', f"len p1 = {len(p1)} AND ", f"len p2 = {len(p2)}")
-            print('p1 = ',p1, '\n', 'p2 = ', p2)
-            continue
-
-        child = [1]*len(p1)
-        crossoverindex = rn.sample(list(range(len(p1))),2)
-        child[min(crossoverindex):max(crossoverindex)+1] = p1[min(crossoverindex):max(crossoverindex)+1]
-
-        j = 0
-        Chain = chain(range(min(crossoverindex)), range(max(crossoverindex)+1, len(child)))
-        for i in Chain:
-
-            if i < min(crossoverindex) or i > max(crossoverindex):
-                while p2[j] in child[min(crossoverindex):max(crossoverindex)]:
-                    j += 1
-                child[i] = p2[j]
-            j += 1
-
-        childs.append(child)
-        crossoverindex = []
-
-    return childs
-# OXCrossOver   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
-
-
-
-childs = OX_CrossOver(Chromosoms)
-print(childs, '\n', len(childs))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# i = 0
-# qt = 0
-# x = []; y = []
-# while qt < Q:
-#     print(i)
-#     c = np.where(Dist_Matrix != 0, Dist_Matrix[i] == min(Dist_Matrix[i, 0:]))[0][0]
-#     qt = qt+Demands[c]
-#     x.append(x_Nodes[i]); x.append(x_Nodes[c])
-#     y.append(y_Nodes[i]); y.append(y_Nodes[c])
-#     i = c
-
-# print(x)
-# plt.plot(x,y,'g')
+# print(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))],'\n\n')
+# print('fitnessValues of chromosoms:',Fitness(InitialChromosoms), '\n\n')
+# Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
 # plt.show()
+
+
+
+# Selection    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+Ranking = range(1,len(InitialChromosoms)+1)
+K = len(Ranking)
+ChromosomsProb =[]
+ProbsRange = []
+for i in Ranking:
+    if i <= K/2:
+        ChromosomsProb.append((12*i)/(5*K*(K+2)))
+    else:
+        ChromosomsProb.append((28*i)/(5*K*(3*K+2)))
+for index, i in enumerate(ChromosomsProb):
+    if index == 0:
+        ProbsRange.append([0,i])
+    else:
+        ProbsRange.append([ProbsRange[index-1][1], ProbsRange[index-1][1] + (i)])
+def SRS_Selection(ChromosomsFitness: list):
+    selectedchromosomforcrossover = []
+    SelectedChromosomForCrossOver = []
+    ChromosomsFitnessSorted = sorted(ChromosomsFitness, reverse=True)
+    ChromosomsIndexByFitness = [ChromosomsFitness.index(i) for i in ChromosomsFitnessSorted]
+    for i in Ranking:
+        r = rn.uniform(0,1)
+        for index, j in enumerate(ProbsRange):
+            if r > j[0] and r <= j[1]:
+                selectedchromosomforcrossover.append(ChromosomsIndexByFitness[index])
+                if len(selectedchromosomforcrossover) == 2:
+                    SelectedChromosomForCrossOver.append(selectedchromosomforcrossover)
+                    selectedchromosomforcrossover = []
+    return SelectedChromosomForCrossOver
+
+# Selection    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+# print('SelectedChromosomForCrossOver: ',FPS_Selection(InitialChromosoms), '\n\n')
+
+
+
+
+# Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def New_Crossover(SelectedChromosoms):
+    global InitialChromosoms
+    childs = []
+    for i in SelectedChromosoms:
+        r = rn.uniform(0,1)
+        if r < 0.8:
+            for rep in range(2):
+                if rep == 0:
+                    p1:list = InitialChromosoms[i[0]]
+                    p2:list = InitialChromosoms[i[1]]
+                if rep == 1:
+                    p1:list = InitialChromosoms[i[1]]
+                    p2:list = InitialChromosoms[i[0]]
+                child = [0]*len(p1)
+                rn1 = rn.randint(1, (len(p1))/3)
+                rn2 = rn.randint(len(p1)*2/3, len(p1)-2)
+                joint = []
+                for p in p1[rn1:rn2+1]:
+                    if p in p2[rn1:rn2+1]:
+                        joint.append(p)
+                        child[p1.index(p)] = p
+                for j in joint:
+                    if child[child.index(j)-1] == 0 and p2[p2.index(j)-1] not in child:
+                        child[child.index(j)-1] = p2[p2.index(j)-1]
+                    if child[child.index(j)+1] == 0 and p2[p2.index(j)+1] not in child:
+                        child[child.index(j)+1] = p2[p2.index(j)+1]
+                c = 0
+                for index, l in enumerate(child):
+                    if l == 0:
+                        if p2[c] not in child:
+                            child[index] = p2[c]
+                            c += 1
+                        elif p2[c] in child:
+                            while p2[c] in child:
+                                c += 1
+                            child[index] = p2[c]
+                            c += 1
+                childs.append(child)
+        else:
+            childs.append(InitialChromosoms[i[0]])
+            childs.append(InitialChromosoms[i[1]])
+    InitialChromosoms = childs.copy()
+    return childs
+# Crossover    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+# print('Childs = ' ,OX_Crossover(SRS_Selection(InitialChromosoms)))
+
+
+
+# Mutation    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def Mutation(childs: list):
+    childsaftermutation = []
+    for i in childs:
+        r = rn.uniform(0,1)
+        if r <= 0.1:
+            n = rn.sample(list(range(len(i))),2)
+            n0 = i[n[0]]
+            n1 = i[n[1]]
+            i[n[0]] = n1
+            i[n[1]] = n0
+            childsaftermutation.append(i)
+        else:
+            childsaftermutation.append(i)
+    return childsaftermutation
+
+
+
+
+
+
+# Generation    -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+def Generation(repeat):
+    global InitialChromosoms
+    g = range(1,repeat+1)
+    minfit = []
+    for i in range(repeat):
+        fitness = Fitness(InitialChromosoms)
+        minfit.append(min(fitness))
+        SelectedChromosoms = SRS_Selection(fitness)
+        Childs = New_Crossover(SelectedChromosoms)
+        childsaftermutation = Mutation(Childs)
+        InitialChromosoms = childsaftermutation
+    Chromosom_Plot(InitialChromosoms[Fitness(InitialChromosoms).index(min(Fitness(InitialChromosoms)))])
+    plt.plot(g,minfit)
+    plt.title(f'min_fitness = {minfit[-1]}')
+    plt.show()
+Generation(2000)
